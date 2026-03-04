@@ -2,77 +2,48 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Comprovante de Venda</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- PDF LIB -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<title>Gerador de Nota Fiscal</title>
 
-<!-- QR CODE -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
 body{
-font-family:Arial;
-background:#f0f0f0;
-padding:20px;
+    font-family: Arial;
+    background:#111;
+    color:#fff;
+    text-align:center;
 }
 
 .container{
-max-width:900px;
-margin:auto;
+    max-width:500px;
+    margin:auto;
+    background:#1c1c1c;
+    padding:20px;
+    border-radius:10px;
 }
 
-input{
-padding:8px;
-margin:5px;
-width:100%;
+input, button{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border:none;
+    border-radius:5px;
 }
 
 button{
-padding:10px;
-margin-top:10px;
-width:100%;
-background:#111;
-color:#fff;
-border:none;
-cursor:pointer;
+    background:#00c853;
+    color:#fff;
+    font-weight:bold;
+    cursor:pointer;
 }
 
-.nota{
-background:#fff;
-padding:20px;
-margin-top:20px;
-border:1px solid #000;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:10px;
-}
-
-td,th{
-border:1px solid #000;
-padding:6px;
-font-size:13px;
-}
-
-.header{
-display:flex;
-justify-content:space-between;
-font-size:13px;
-margin-bottom:10px;
-}
-
-.total{
-text-align:right;
-font-weight:bold;
-margin-top:10px;
-}
-
-#qrcode{
-margin-top:10px;
+#nota{
+    display:none;
+    background:#fff;
+    color:#000;
+    padding:20px;
 }
 </style>
 </head>
@@ -80,136 +51,117 @@ margin-top:10px;
 <body>
 
 <div class="container">
+<h2>GERADOR DE NOTA</h2>
 
-<h2>Gerar Comprovante</h2>
-
-<input id="nome" placeholder="Nome do cliente">
+<input id="nome" placeholder="Nome cliente">
 <input id="cpf" placeholder="CPF">
 <input id="endereco" placeholder="Endereço">
-
 <input id="produto" placeholder="Produto">
 <input id="valor" placeholder="Valor">
 
 <button onclick="addProduto()">Adicionar Produto</button>
-<button onclick="gerarNota()">Gerar</button>
-
-<div id="nota" class="nota" style="display:none;"></div>
-
-<button onclick="gerarPDF()">Baixar PDF</button>
+<button onclick="gerarNota()">Gerar Nota</button>
+<button onclick="baixarPDF()">Baixar PDF</button>
 <button onclick="enviarWhats()">Enviar WhatsApp</button>
-
 </div>
 
-<script>
+<div id="nota"></div>
 
+<script>
 let produtos = [];
 
 function addProduto(){
-let nome = document.getElementById('produto').value;
-let valor = parseFloat(document.getElementById('valor').value);
+    let nome = document.getElementById("produto").value;
+    let valor = parseFloat(document.getElementById("valor").value);
 
-if(!nome || !valor) return;
+    if(!nome || !valor) return alert("Preencha produto e valor");
 
-produtos.push({nome, valor});
-document.getElementById('produto').value='';
-document.getElementById('valor').value='';
+    produtos.push({nome, valor});
+
+    document.getElementById("produto").value="";
+    document.getElementById("valor").value="";
+
+    alert("Produto adicionado");
 }
 
 function gerarNota(){
 
-let nome = document.getElementById('nome').value;
-let cpf = document.getElementById('cpf').value;
-let endereco = document.getElementById('endereco').value;
+    let nome = document.getElementById("nome").value;
+    let cpf = document.getElementById("cpf").value;
+    let endereco = document.getElementById("endereco").value;
 
-let numero = "BR-" + Date.now();
+    let total = produtos.reduce((t,p)=>t+p.valor,0);
 
-let data = new Date().toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'});
+    let numero = Math.floor(Math.random()*100000);
+    let data = new Date().toLocaleString();
 
-let total = produtos.reduce((a,b)=>a+b.valor,0);
-let html = `
-<div style="width:100%; font-family:Courier New; font-size:14px;">
+    let html = `
+    <div style="width:300px; margin:auto; font-family:Courier New;">
 
-<div style="text-align:center; font-weight:bold; font-size:16px;">
-AUTO PEÇAS E MECÂNICA BR<br>
-CNPJ: 01.349.268/0001-04<br>
-Sinop - MT
-</div>
+    <div style="text-align:center; font-weight:bold;">
+    AUTO PEÇAS BR<br>
+    CNPJ: 01.349.268/0001-04<br>
+    </div>
 
-<hr style="border:1px solid #000;">
+    <hr>
 
-<div>
-NFC-e Nº: ${numero}<br>
-Data: ${data}
-</div>
+    NFC-e Nº ${numero}<br>
+    ${data}
 
-<hr style="border:1px dashed #000;">
+    <hr>
 
-CLIENTE: ${nome}<br>
-CPF: ${cpf}<br>
-ENDEREÇO: ${endereco}
+    CLIENTE: ${nome}<br>
+    CPF: ${cpf}<br>
+    ${endereco}
 
-<hr style="border:1px solid #000;">
+    <hr>
 
-<table style="width:100%; border-collapse:collapse;">
-<tr>
-<th style="text-align:left;">ITEM</th>
-<th style="text-align:right;">VALOR</th>
-</tr>
-`;
+    `;
 
-produtos.forEach((p,i)=>{
-html += `
-<tr>
-<td>${i+1}. ${p.nome}</td>
-<td style="text-align:right;">R$ ${p.valor.toFixed(2)}</td>
-</tr>
-`;
-});
+    produtos.forEach((p,i)=>{
+        html += `${i+1} - ${p.nome} R$ ${p.valor.toFixed(2)}<br>`;
+    });
 
-html += `
-</table>
+    html += `
 
-<hr style="border:1px solid #000;">
+    <hr>
 
-<div style="text-align:right; font-size:18px; font-weight:bold;">
-TOTAL R$ ${total.toFixed(2)}
-</div>
+    <b>TOTAL R$ ${total.toFixed(2)}</b>
 
-<hr style="border:1px dashed #000;">
+    <hr>
 
-FORMA DE PAGAMENTO: DINHEIRO<br>
-ATENDENTE: FELIPE
+    Documento sem valor fiscal
 
-<div style="margin-top:15px; text-align:center; font-size:12px;">
-Documento sem valor fiscal<br>
-Impresso para simples conferência
-</div>
+    </div>
+    `;
 
-<div id="qrcode" style="margin-top:10px; text-align:center;"></div>
+    let nota = document.getElementById("nota");
+    nota.innerHTML = html;
+    nota.style.display = "block";
+}
 
-</div>
-`;
+function baixarPDF(){
 
-function gerarPDF(){
-let element = document.getElementById('nota');
+    let element = document.getElementById("nota");
 
-html2pdf().set({
-margin: 5,
-filename: 'comprovante.pdf',
-html2canvas: { scale: 2 },
-jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-}).from(element).save();
+    let opt = {
+        margin: 5,
+        filename: 'nota.pdf',
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 3 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
 }
 
 function enviarWhats(){
 
-let texto = document.getElementById('nota').innerText;
+    let texto = "Segue sua nota fiscal!";
+    let url = "https://wa.me/?text=" + encodeURIComponent(texto);
 
-let url = "https://wa.me/5511944690732?text=" + encodeURIComponent(texto);
-
-window.open(url, '_blank');
+    window.open(url, '_blank');
 }
-
 </script>
 
 </body>
