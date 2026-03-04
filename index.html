@@ -2,123 +2,205 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<title>Comprovante de Venda</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nota Fiscal - DesmancheBR</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+<!-- PDF LIB -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- QR CODE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <style>
-body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px;}
-.container{max-width:800px;margin:auto;background:#fff;padding:20px;border:1px solid #ccc;}
-h1{text-align:center;color:#d90000;}
-table{width:100%;border-collapse:collapse;margin-top:20px;}
-table, th, td{border:1px solid #333;}
-th, td{padding:8px;text-align:left;}
-th{background:#eee;}
-label{display:block;margin-top:10px;font-weight:bold;}
-input{width:100%;padding:8px;margin-top:4px;border:1px solid #ccc;border-radius:4px;}
-button{margin-top:20px;padding:12px;background:#d90000;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;width:100%;}
-.qr{margin-top:20px;text-align:center;}
+body{
+font-family:Arial;
+background:#f0f0f0;
+padding:20px;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+}
+
+input{
+padding:8px;
+margin:5px;
+width:100%;
+}
+
+button{
+padding:10px;
+margin-top:10px;
+width:100%;
+background:#111;
+color:#fff;
+border:none;
+cursor:pointer;
+}
+
+.nota{
+background:#fff;
+padding:20px;
+margin-top:20px;
+border:1px solid #000;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+td,th{
+border:1px solid #000;
+padding:6px;
+font-size:13px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+font-size:13px;
+margin-bottom:10px;
+}
+
+.total{
+text-align:right;
+font-weight:bold;
+margin-top:10px;
+}
+
+#qrcode{
+margin-top:10px;
+}
 </style>
 </head>
+
 <body>
 
 <div class="container">
-<h1>🧾 Nota Fiscal - DesmancheBR</h1>
 
-<form id="notaForm">
-<label>Cliente:</label>
-<input type="text" id="cliente" required>
+<h2>Gerar Comprovante</h2>
 
-<label>CPF:</label>
-<input type="text" id="cpf" required>
+<input id="nome" placeholder="Nome do cliente">
+<input id="cpf" placeholder="CPF">
+<input id="endereco" placeholder="Endereço">
 
-<label>Endereço do Cliente:</label>
-<input type="text" id="enderecoCliente" required>
+<input id="produto" placeholder="Produto">
+<input id="valor" placeholder="Valor">
 
-<label>Produto:</label>
-<input type="text" id="produto" required>
+<button onclick="addProduto()">Adicionar Produto</button>
+<button onclick="gerarNota()">Gerar</button>
 
-<label>Valor (R$):</label>
-<input type="number" id="valor" required>
+<div id="nota" class="nota" style="display:none;"></div>
 
-<label>Número Série:</label>
-<input type="text" id="numSerie" required>
-
-<button type="submit">Gerar Nota PDF</button>
-</form>
-
-<div class="qr">
-<canvas id="qrcode"></canvas>
-</div>
+<button onclick="gerarPDF()">Baixar PDF</button>
+<button onclick="enviarWhats()">Enviar WhatsApp</button>
 
 </div>
 
 <script>
-const { jsPDF } = window.jspdf;
 
-document.getElementById('notaForm').addEventListener('submit', function(e){
-    e.preventDefault();
+let produtos = [];
 
-    // Dados da nota
-    const cliente = document.getElementById('cliente').value;
-    const cpf = document.getElementById('cpf').value;
-    const enderecoCliente = document.getElementById('enderecoCliente').value;
-    const produto = document.getElementById('produto').value;
-    const valor = parseFloat(document.getElementById('valor').value).toFixed(2);
-    const numSerie = document.getElementById('numSerie').value;
+function addProduto(){
+let nome = document.getElementById('produto').value;
+let valor = parseFloat(document.getElementById('valor').value);
 
-    const empresa = {
-        nome: "DesmancheBR",
-        cnpj: "01.349.268/0001-04",
-        endereco: "Rua João Pedro Moreira de Carvalho, 2296, Sinop - MT",
-        atendente: "Felipe"
-    };
+if(!nome || !valor) return;
 
-    const data = new Date().toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'});
+produtos.push({nome, valor});
+document.getElementById('produto').value='';
+document.getElementById('valor').value='';
+}
 
-    // Gerar QR code
-    const qr = new QRious({
-        element: document.getElementById('qrcode'),
-        value: `https://desmanchebr.online/nota?serie=${numSerie}&cliente=${encodeURIComponent(cliente)}`,
-        size: 120
-    });
+function gerarNota(){
 
-    // Gerar PDF
-    const doc = new jsPDF();
-    doc.setFontSize(12);
-    doc.text(`${empresa.nome}`, 10, 10);
-    doc.text(`CNPJ: ${empresa.cnpj}`, 10, 16);
-    doc.text(`${empresa.endereco}`, 10, 22);
-    doc.text(`Atendente: ${empresa.atendente}`, 10, 28);
-    doc.text(`Data/Hora: ${data}`, 10, 34);
-    doc.text(`Número Série: ${numSerie}`, 10, 40);
+let nome = document.getElementById('nome').value;
+let cpf = document.getElementById('cpf').value;
+let endereco = document.getElementById('endereco').value;
 
-    doc.setFontSize(14);
-    doc.text("Dados do Cliente", 10, 50);
-    doc.setFontSize(12);
-    doc.text(`Nome: ${cliente}`, 10, 56);
-    doc.text(`CPF: ${cpf}`, 10, 62);
-    doc.text(`Endereço: ${enderecoCliente}`, 10, 68);
+let numero = "BR-" + Date.now();
 
-    doc.setFontSize(14);
-    doc.text("Produto", 10, 78);
-    doc.setFontSize(12);
-    doc.autoTable({
-        startY: 82,
-        head: [['Descrição', 'Valor (R$)']],
-        body: [[produto, valor]],
-        theme: 'grid'
-    });
+let data = new Date().toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'});
 
-    // Adicionar QR code
-    const qrCanvas = document.getElementById('qrcode');
-    const imgData = qrCanvas.toDataURL("image/png");
-    doc.addImage(imgData, 'PNG', 150, 10, 40, 40);
+let total = produtos.reduce((a,b)=>a+b.valor,0);
 
-    doc.save(`Nota_${numSerie}.pdf`);
+let html = `
+<div class="header">
+<div>
+<strong>Auto Peças e Mecânica BR</strong><br>
+CNPJ: 01.349.268/0001-04<br>
+Endereço: Sinop - MT
+</div>
+<div>
+Nº: ${numero}<br>
+Data: ${data}
+</div>
+</div>
+
+<hr>
+
+<strong>Cliente:</strong> ${nome}<br>
+<strong>CPF:</strong> ${cpf}<br>
+<strong>Endereço:</strong> ${endereco}<br><br>
+
+<table>
+<tr>
+<th>Produto</th>
+<th>Valor</th>
+</tr>
+`;
+
+produtos.forEach(p=>{
+html += `<tr><td>${p.nome}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`;
 });
+
+html += `</table>
+
+<div class="total">
+TOTAL: R$ ${total.toFixed(2)}
+</div>
+
+<br>
+Atendente: Felipe
+<div id="qrcode"></div>
+`;
+
+let nota = document.getElementById('nota');
+nota.innerHTML = html;
+nota.style.display='block';
+
+// QR CODE
+let qr = new QRCode(document.getElementById("qrcode"), {
+text: numero,
+width: 80,
+height: 80
+});
+}
+
+function gerarPDF(){
+let element = document.getElementById('nota');
+
+html2pdf().set({
+margin: 5,
+filename: 'comprovante.pdf',
+html2canvas: { scale: 2 },
+jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+}).from(element).save();
+}
+
+function enviarWhats(){
+
+let texto = document.getElementById('nota').innerText;
+
+let url = "https://wa.me/5511944690732?text=" + encodeURIComponent(texto);
+
+window.open(url, '_blank');
+}
+
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>
