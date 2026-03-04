@@ -3,177 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Emissão de Comprovante</title>
+<title>Comprovante Profissional - PDF com QR</title>
+
+<!-- jsPDF e QR Code -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
 <style>
-body{
-font-family: Arial, sans-serif;
-background:#f5f5f5;
-padding:20px;
-}
-
-.container{
-max-width:500px;
-margin:auto;
-background:#fff;
-padding:20px;
-border-radius:8px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
-
-h2{
-text-align:center;
-margin-bottom:20px;
-}
-
-input{
-width:100%;
-padding:10px;
-margin-bottom:10px;
-border:1px solid #ccc;
-border-radius:5px;
-}
-
-button{
-width:100%;
-padding:12px;
-background:#25D366;
-color:#fff;
-border:none;
-border-radius:5px;
-font-size:16px;
-cursor:pointer;
-}
-
-button:hover{
-background:#1ebe5d;
-}
-
-.nota{
-display:none;
-margin-top:20px;
-background:#fff;
-padding:15px;
-border:1px solid #000;
-font-size:14px;
-}
-
-.linha{
-display:flex;
-justify-content:space-between;
-margin-bottom:5px;
-}
-
-hr{
-border:none;
-border-top:1px dashed #000;
-margin:10px 0;
-}
+body{font-family: 'Courier New', monospace; background:#f5f5f5; padding:20px;}
+.container{max-width:600px;margin:auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.1);}
+h2{text-align:center;color:#d90000;margin-bottom:20px;}
+input{width:100%;padding:10px;margin-bottom:10px;border:1px solid #ccc;border-radius:5px;}
+button{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:5px;font-size:16px;cursor:pointer;margin-top:10px;}
+button:hover{background:#1ebe5d;}
 </style>
 </head>
-
 <body>
 
 <div class="container">
-<h2>Emissão de Comprovante</h2>
-
+<h2>Emissão de Comprovante Profissional</h2>
 <input id="nome" placeholder="Nome do Cliente">
 <input id="cpf" placeholder="CPF do Cliente">
 <input id="enderecoCliente" placeholder="Endereço do Cliente">
 <input id="produto" placeholder="Produto">
 <input id="valor" placeholder="Valor (R$)">
-
-<button onclick="gerarEEnviar()">Emitir e Enviar no WhatsApp</button>
-
-<div id="nota" class="nota"></div>
+<button onclick="gerarPDF()">Gerar PDF & Compartilhar</button>
 </div>
 
 <script>
+async function gerarPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-function gerarEEnviar(){
+    // Dados do cliente
+    let nome = document.getElementById("nome").value || "________";
+    let cpf = document.getElementById("cpf").value || "________";
+    let enderecoCliente = document.getElementById("enderecoCliente").value || "________";
+    let produto = document.getElementById("produto").value || "________";
+    let valor = document.getElementById("valor").value || "0,00";
 
-let nome = document.getElementById("nome").value;
-let cpf = document.getElementById("cpf").value;
-let enderecoCliente = document.getElementById("enderecoCliente").value;
-let produto = document.getElementById("produto").value;
-let valor = document.getElementById("valor").value;
+    // Dados da empresa
+    let empresa = "AUTO PEÇAS E MECÂNICA BR";
+    let cnpj = "01.349.268/0001-04";
+    let enderecoEmpresa = "Rua João Pedro Moreira de Carvalho, 2296 - Sinop MT";
+    let atendente = "Felipe";
 
-let numero = "BR-" + Math.floor(Math.random()*100000);
-let data = new Date().toLocaleString();
+    // Número de série e data
+    let numero = "BR-" + Math.floor(Math.random()*100000);
+    let data = new Date().toLocaleString("pt-BR", {timeZone:"America/Sao_Paulo"});
 
-let empresa = "AUTO PEÇAS E MECÂNICA BR";
-let cnpj = "01.349.268/0001-04";
-let enderecoEmpresa = "Rua João Pedro Moreira de Carvalho, 2296 - Sinop MT";
-let atendente = "Felipe";
+    // Geração de QR code com jsQRious
+    let qr = new QRious({value:`${numero}|${nome}|${produto}|${valor}`, size:80});
 
-let notaHTML = `
-<strong>${empresa}</strong><br>
-CNPJ: ${cnpj}<br>
-${enderecoEmpresa}
-<hr>
-<strong>COMPROVANTE DE VENDA</strong>
-<hr>
+    // Começa o PDF
+    doc.setFont("Courier", "normal");
+    doc.setFontSize(12);
 
-<div class="linha"><span>Nº:</span><span>${numero}</span></div>
-<div class="linha"><span>Data:</span><span>${data}</span></div>
+    let startY = 20;
 
-<hr>
+    // Cabeçalho
+    doc.text(empresa, 10, startY);
+    startY +=6;
+    doc.text(`CNPJ: ${cnpj}`, 10, startY);
+    startY +=6;
+    doc.text(enderecoEmpresa, 10, startY);
+    startY +=10;
+    doc.text(`Comprovante de Venda - Nº: ${numero}`, 10, startY);
+    startY +=6;
+    doc.text(`Data/Hora: ${data}`, 10, startY);
+    startY +=10;
 
-<strong>CLIENTE</strong><br>
-${nome}<br>
-CPF: ${cpf}<br>
-${enderecoCliente}
+    // Tabela de dados
+    doc.text("CLIENTE", 10, startY);
+    doc.text("CPF", 90, startY);
+    doc.text("ENDEREÇO", 150, startY);
+    startY +=6;
+    doc.text(nome, 10, startY);
+    doc.text(cpf, 90, startY);
+    doc.text(enderecoCliente, 150, startY);
+    startY +=10;
 
-<hr>
+    doc.text("PRODUTO", 10, startY);
+    doc.text("VALOR (R$)", 150, startY);
+    startY +=6;
+    doc.text(produto, 10, startY);
+    doc.text(valor, 150, startY);
+    startY +=10;
 
-<strong>PRODUTO</strong><br>
-${produto}
+    doc.text(`Atendente: ${atendente}`, 10, startY);
+    startY +=10;
+    doc.text("Envio para todo Brasil", 10, startY);
 
-<hr>
+    // Adiciona QR code
+    let qrImg = qr.toDataURL();
+    doc.addImage(qrImg, 'PNG', 150, 20, 40, 40);
 
-<div class="linha"><span>Valor:</span><span>R$ ${valor}</span></div>
+    // Salva PDF
+    let fileName = `Comprovante_${numero}.pdf`;
+    doc.save(fileName);
 
-<hr>
-
-Atendente: ${atendente}<br>
-Documento sem valor fiscal<br>
-`;
-
-document.getElementById("nota").style.display="block";
-document.getElementById("nota").innerHTML = notaHTML;
-
-
-// TEXTO PARA WHATSAPP
-let texto =
-`AUTO PEÇAS E MECÂNICA BR
-CNPJ: 01.349.268/0001-04
-
-COMPROVANTE DE VENDA
-
-Nº: ${numero}
-Data: ${data}
-
-CLIENTE:
-${nome}
-CPF: ${cpf}
-${enderecoCliente}
-
-PRODUTO:
-${produto}
-
-VALOR: R$ ${valor}
-
-Atendente: ${atendente}
-Documento sem valor fiscal`;
-
-// SEU NÚMERO AQUI
-let url = "https://wa.me/5511944690732?text=" + encodeURIComponent(texto);
-
-window.open(url, "_blank");
-
+    // WhatsApp
+    let numeroWhats = "5511922123841"; // seu número
+    let texto = `Comprovante de Venda\nNº: ${numero}\nCliente: ${nome}\nProduto: ${produto}\nValor: R$ ${valor}\nAtendente: ${atendente}`;
+    let url = "https://wa.me/" + numeroWhats + "?text=" + encodeURIComponent(texto);
+    window.open(url, "_blank");
 }
-
 </script>
-
 </body>
 </html>
