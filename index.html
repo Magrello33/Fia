@@ -4,8 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nota Fiscal - DesmancheBR</title>
+
+<!-- jsPDF + html2canvas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <style>
 body {font-family: 'Courier New', monospace; background:#f5f5f5; padding:20px;}
 .nf-container {background:#fff; max-width:700px; margin:auto; padding:20px; border:1px solid #333;}
@@ -16,6 +20,7 @@ th, td {padding:8px; text-align:left; font-size:14px;}
 tfoot td {font-weight:bold;}
 .qr-container {text-align:center; margin-top:20px;}
 button {background:#25d366; color:#fff; padding:10px 15px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-top:10px;}
+input {width:100%; padding:4px; box-sizing:border-box;}
 </style>
 </head>
 <body>
@@ -65,26 +70,23 @@ button {background:#25d366; color:#fff; padding:10px 15px; border:none; border-r
 
 <div class="qr-container" id="qrcode"></div>
 
-<button onclick="gerarPDF()">📄 Gerar PDF e Compartilhar WhatsApp</button>
+<button onclick="gerarPDF()">📄 Gerar PDF</button>
 
 </div>
 
 <script>
-const { jsPDF } = window.jspdf;
-
 // Número da nota aleatório
 document.getElementById('numeroNota').textContent = 'BR-2026-' + Math.floor(Math.random()*90000+10000);
 
 // Data e hora Brasil
 function formatDataHora(){
   const now = new Date();
-  const offset = -3; // GMT-3
-  const local = new Date(now.getTime() + offset*60*60*1000);
+  const local = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)); // ajusta timezone local
   return local.toLocaleString('pt-BR');
 }
 document.getElementById('dataHora').textContent = formatDataHora();
 
-// Função adicionar produto
+// Adicionar produto
 function adicionarProduto(){
   const tbody = document.getElementById('produtosTable').querySelector('tbody');
   const tr = document.createElement('tr');
@@ -109,7 +111,7 @@ document.getElementById('produtosTable').addEventListener('input', ()=>{
   document.getElementById('totalGeral').textContent = totalGeral.toFixed(2);
 });
 
-// Gera QR code
+// QR Code
 new QRCode(document.getElementById("qrcode"), {
   text: "Verifique esta nota em: desmanchebr.online/verificar",
   width: 100,
@@ -117,21 +119,18 @@ new QRCode(document.getElementById("qrcode"), {
 });
 
 // Gerar PDF
-function gerarPDF(){
+async function gerarPDF(){
+  const { jsPDF } = window.jspdf;
   const nota = document.getElementById('notaFiscal');
   const pdf = new jsPDF('p','pt','a4');
-  pdf.html(nota, {
+  await pdf.html(nota, {
     callback: function(doc){
-      const blob = doc.output('blob');
-      const url = URL.createObjectURL(blob);
-      // Compartilhar WhatsApp
-      const whatsapp = 'https://api.whatsapp.com/send?phone=5511944690732&text=Confira%20sua%20nota%20fiscal&attachment=' + encodeURIComponent(url);
-      window.open(url); // abre o PDF no navegador
-      alert("PDF gerado! Agora você pode enviar pelo WhatsApp manualmente.");
+      doc.save(`nota_${document.getElementById('numeroNota').textContent}.pdf`);
+      alert("PDF gerado com sucesso!");
     },
     x:10,
     y:10,
-    html2canvas: { scale: 1.5 }
+    html2canvas: { scale: 2 } // escala maior para não cortar conteúdo
   });
 }
 </script>
