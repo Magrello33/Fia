@@ -1,66 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Gerador de Nota Fiscal</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+body{
+    font-family: monospace;
+    background:#eee;
+    padding:20px;
+}
+
+.container{
+    max-width:400px;
+    margin:auto;
+    background:#fff;
+    padding:15px;
+    border-radius:8px;
+}
+
+input{
+    width:100%;
+    margin:5px 0;
+    padding:8px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    background:#000;
+    color:#fff;
+    border:none;
+    margin-top:10px;
+}
+
+#nota{
+    display:none;
+    width:300px;
+    margin:auto;
+    background:#fff;
+    padding:10px;
+    font-size:12px;
+}
+
+.center{text-align:center;}
+.line{border-top:1px dashed #000;margin:5px 0;}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h3>Gerar Nota</h3>
+
+<input id="cliente" placeholder="Nome Cliente">
+<input id="cpf" placeholder="CPF">
+<input id="endereco" placeholder="Endereço">
+<input id="telefone" placeholder="Telefone">
+
+<input id="produto" placeholder="Produto">
+<input id="valor" placeholder="Valor">
+
+<button onclick="gerarNota()">Gerar Nota</button>
+<button onclick="baixarPDF()">Baixar PDF</button>
+
+</div>
+
+<div id="nota">
+
+<div class="center">
+<b>AUTO PEÇAS BR</b><br>
+CNPJ: 01.349.268/0001-04<br>
+Endereço: Sinop - MT<br>
+Telefone: (37) 9841-6044
+</div>
+
+<div class="line"></div>
+
+<div class="center">
+NFC-e Nº <span id="numero"></span><br>
+<span id="data"></span>
+</div>
+
+<div class="line"></div>
+
+Cliente: <span id="nCliente"></span><br>
+CPF: <span id="nCpf"></span><br>
+End: <span id="nEnd"></span><br>
+Tel: <span id="nTel"></span>
+
+<div class="line"></div>
+
+1 - <span id="nProduto"></span><br>
+R$ <span id="nValor"></span>
+
+<div class="line"></div>
+
+<div class="center">
+<b>TOTAL R$ <span id="nTotal"></span></b>
+</div>
+
+<div class="line"></div>
+
+Atendente: Felipe
+
+<div id="qrcode" class="center"></div>
+
+<div class="center">
+Obrigado pela preferência
+</div>
+
+</div>
+
+<script>
+
 function gerarNota(){
 
-    let nome = document.getElementById("nome").value;
-    let cpf = document.getElementById("cpf").value;
-    let endereco = document.getElementById("endereco").value;
-    let telefoneCliente = document.getElementById("telefone").value;
+let numero = Math.floor(Math.random()*999999);
 
-    let total = produtos.reduce((t,p)=>t+p.valor,0);
+document.getElementById("numero").innerText = numero;
 
-    let numero = Math.floor(Math.random()*999999);
-    let data = new Date().toLocaleString("pt-BR");
+let data = new Date().toLocaleString("pt-BR");
+document.getElementById("data").innerText = data;
 
-    let html = `
-    <div style="width:280px; margin:auto; font-family:monospace; font-size:12px;">
+document.getElementById("nCliente").innerText = document.getElementById("cliente").value;
+document.getElementById("nCpf").innerText = document.getElementById("cpf").value;
+document.getElementById("nEnd").innerText = document.getElementById("endereco").value;
+document.getElementById("nTel").innerText = document.getElementById("telefone").value;
 
-    <center>
-    <b>AUTO PEÇAS BR</b><br>
-    CNPJ: 01.349.268/0001-04<br>
-    END: Sinop - MT<br>
-    TEL: (11) 92212-3841<br>
-    </center>
+document.getElementById("nProduto").innerText = document.getElementById("produto").value;
 
-    --------------------------------------
+let valor = document.getElementById("valor").value;
+document.getElementById("nValor").innerText = valor;
+document.getElementById("nTotal").innerText = valor;
 
-    NFC-e Nº ${numero}<br>
-    ${data}
+document.getElementById("nota").style.display = "block";
 
-    --------------------------------------
+// QR CODE
+document.getElementById("qrcode").innerHTML = "";
+new QRCode(document.getElementById("qrcode"), {
+    text: "Nota "+numero,
+    width:80,
+    height:80
+});
 
-    CLIENTE: ${nome}<br>
-    CPF: ${cpf}<br>
-    END: ${endereco}<br>
-    TEL: ${telefoneCliente}
-
-    --------------------------------------
-
-    `;
-
-    produtos.forEach((p,i)=>{
-        html += `
-        ${i+1}. ${p.nome}<br>
-        R$ ${p.valor.toFixed(2)}<br>
-        `;
-    });
-
-    html += `
-
-    --------------------------------------
-
-    TOTAL R$ ${total.toFixed(2)}
-
-    FORMA PAGAMENTO: PIX
-
-    --------------------------------------
-
-    ATENDENTE: FELIPE
-
-    --------------------------------------
-
-    Obrigado pela preferência
-    `;
-
-    let nota = document.getElementById("nota");
-    nota.innerHTML = html;
-    nota.style.display = "block";
 }
+
+async function baixarPDF(){
+
+const { jsPDF } = window.jspdf;
+
+let doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, 200]
+});
+
+let texto = document.getElementById("nota").innerText;
+
+let linhas = doc.splitTextToSize(texto, 70);
+
+doc.setFont("courier");
+doc.setFontSize(8);
+
+doc.text(linhas, 5, 5);
+
+doc.save("nota_fiscal.pdf");
+
+}
+
+</script>
+
+</body>
+</html>
