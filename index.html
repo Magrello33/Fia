@@ -2,247 +2,201 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Nota Fiscal</title>
+<title>Gerador de Nota Fiscal</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
-
 body{
-    font-family: Arial, sans-serif;
-    background:#ccc;
-}
-
-.area{
-    width:794px;
-    margin:auto;
-}
-
-.nota{
-    width:794px;
-    background:#fff;
-    padding:20px;
-    box-sizing:border-box;
-    border:1px solid #000;
-}
-
-/* TOPO */
-.topo{
-    display:flex;
-    justify-content:space-between;
-    border-bottom:2px solid #000;
-    padding-bottom:10px;
-    margin-bottom:10px;
-}
-
-.empresa{
-    font-size:12px;
-}
-
-.titulo{
-    text-align:right;
-    font-size:13px;
-}
-
-/* BOX PADRÃO */
-.box{
-    border:1px solid #000;
-    margin-top:10px;
-}
-
-.box-title{
+    font-family: monospace;
     background:#eee;
-    padding:4px;
-    font-size:12px;
-    font-weight:bold;
-    border-bottom:1px solid #000;
+    padding:20px;
 }
 
-.box-content{
-    padding:8px;
-    font-size:12px;
-}
-
-/* TABELA */
-table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:12px;
-}
-
-th,td{
-    border:1px solid #000;
-    padding:5px;
-    text-align:center;
-}
-
-.total{
-    text-align:right;
-    font-size:16px;
-    margin-top:10px;
-    font-weight:bold;
-}
-
-.qr{
-    margin-top:10px;
-}
-
-/* BOTÕES */
-.controls{
-    margin:20px auto;
-    width:300px;
+.container{
+    max-width:400px;
+    margin:auto;
+    background:#fff;
+    padding:15px;
+    border-radius:8px;
 }
 
 input{
     width:100%;
-    padding:8px;
     margin:5px 0;
+    padding:8px;
 }
 
 button{
     width:100%;
-    padding:10px;
-    margin-top:5px;
+    padding:12px;
     background:#000;
     color:#fff;
     border:none;
-    cursor:pointer;
+    margin-top:10px;
 }
 
+#nota{
+    display:none;
+    width:300px;
+    margin:auto;
+    background:#fff;
+    padding:10px;
+    font-size:12px;
+}
+
+.center{text-align:center;}
+.line{border-top:1px dashed #000;margin:5px 0;}
 </style>
 </head>
 
 <body>
 
-<div class="controls">
-<input id="nome" placeholder="Nome">
+<div class="container">
+
+<h3>Gerar Nota</h3>
+
+<input id="cliente" placeholder="Nome Cliente">
 <input id="cpf" placeholder="CPF">
 <input id="endereco" placeholder="Endereço">
 <input id="telefone" placeholder="Telefone">
+
 <input id="produto" placeholder="Produto">
-<input id="qtd" placeholder="Qtd">
 <input id="valor" placeholder="Valor">
-<button onclick="gerar()">GERAR</button>
-<button onclick="pdf()">BAIXAR PDF</button>
+
+<button onclick="gerarNota()">Gerar Nota</button>
+<button onclick="baixarPDF()">Baixar PDF</button>
+
 </div>
 
-<div class="area">
-<div class="nota" id="nota">
+<div id="nota">
 
-<div class="topo">
-<div class="empresa">
-<b>AUTO PEÇAS E MECÂNICA BR</b><br>
+<div class="center">
+<b>AUTO PEÇAS BR LTDA</b><br>
 CNPJ: 01.349.268/0001-04<br>
-Rua João Pedro Moreira de Carvalho, 2296<br>
-Sinop - MT<br>
-Tel: (37) 9841-6044
+IE: 123.456.789.000<br>
+Endereço: Rua Moreira de Carvalho, 2296 - Campinas/SP<br>
+Telefone: (19) 95534-4351
 </div>
 
-<div class="titulo">
-<b>NOTA DE VENDA</b><br>
-Nº: <span id="numero"></span><br>
-Data: <span id="data"></span><br>
+<div class="line"></div>
+
+<div class="center">
+NFC-e Nº <span id="numero"></span><br>
+<span id="data"></span>
+</div>
+
+<div class="line"></div>
+
+Cliente: <span id="nCliente"></span><br>
+CPF: <span id="nCpf"></span><br>
+End: <span id="nEnd"></span><br>
+Tel: <span id="nTel"></span>
+
+<div class="line"></div>
+
+1 - <span id="nProduto"></span><br>
+R$ <span id="nValor"></span>
+
+<div class="line"></div>
+
+<div class="center">
+<b>TOTAL R$ <span id="nTotal"></span></b>
+</div>
+
+<div class="line"></div>
+
 Atendente: Felipe
-</div>
-</div>
 
-<div class="box">
-<div class="box-title">DADOS DO CLIENTE</div>
-<div class="box-content">
-Nome: <span id="c_nome"></span><br>
-CPF: <span id="c_cpf"></span><br>
-Endereço: <span id="c_endereco"></span><br>
-Telefone: <span id="c_tel"></span>
-</div>
+<div id="qrcode" class="center"></div>
+
+<div class="center">
+Obrigado pela preferência
 </div>
 
-<div class="box">
-<div class="box-title">PRODUTOS</div>
-
-<table>
-<thead>
-<tr>
-<th>CÓDIGO</th>
-<th>DESCRIÇÃO</th>
-<th>QTD</th>
-<th>V. UNIT</th>
-<th>V. TOTAL</th>
-</tr>
-</thead>
-
-<tbody id="itens"></tbody>
-
-</table>
-
-<div class="total">
-TOTAL: R$ <span id="total"></span>
-</div>
-
-<div class="qr" id="qrcode"></div>
-
-</div>
-
-</div>
 </div>
 
 <script>
 
-function gerarNumero(){
-    let n = Math.floor(Math.random()*999999);
-    return "BR-2026-" + n;
+function validarCampos(){
+
+let campos = ["cliente","cpf","endereco","telefone","produto","valor"];
+
+for(let i=0;i<campos.length;i++){
+    let valor = document.getElementById(campos[i]).value.trim();
+    if(valor === ""){
+        alert("Preencha o campo: " + campos[i]);
+        return false;
+    }
 }
 
-function gerar(){
+// valida valor numérico
+let valor = document.getElementById("valor").value;
+if(isNaN(valor)){
+    alert("Valor inválido");
+    return false;
+}
 
-    let nome = document.getElementById("nome").value;
-    let cpf = document.getElementById("cpf").value;
-    let endereco = document.getElementById("endereco").value;
-    let tel = document.getElementById("telefone").value;
+return true;
+}
 
-    let produto = document.getElementById("produto").value;
-    let qtd = parseFloat(document.getElementById("qtd").value);
-    let valor = parseFloat(document.getElementById("valor").value);
+function gerarNota(){
 
-    let total = qtd * valor;
+if(!validarCampos()) return;
 
-    document.getElementById("c_nome").innerText = nome;
-    document.getElementById("c_cpf").innerText = cpf;
-    document.getElementById("c_endereco").innerText = endereco;
-    document.getElementById("c_tel").innerText = tel;
+let numero = Math.floor(Math.random()*999999);
 
-    document.getElementById("numero").innerText = gerarNumero();
-    document.getElementById("data").innerText = new Date().toLocaleString("pt-BR");
+document.getElementById("numero").innerText = numero;
 
-    document.getElementById("itens").innerHTML = `
-    <tr>
-        <td>001</td>
-        <td>${produto}</td>
-        <td>${qtd}</td>
-        <td>R$ ${valor.toFixed(2)}</td>
-        <td>R$ ${total.toFixed(2)}</td>
-    </tr>`;
+let data = new Date().toLocaleString("pt-BR");
+document.getElementById("data").innerText = data;
 
-    document.getElementById("total").innerText = total.toFixed(2);
+document.getElementById("nCliente").innerText = document.getElementById("cliente").value;
+document.getElementById("nCpf").innerText = document.getElementById("cpf").value;
+document.getElementById("nEnd").innerText = document.getElementById("endereco").value;
+document.getElementById("nTel").innerText = document.getElementById("telefone").value;
 
-    document.getElementById("qrcode").innerHTML = "";
-    new QRCode(document.getElementById("qrcode"), {
-        text: "https://desmanchebr.online",
-        width: 80,
-        height: 80
-    });
+document.getElementById("nProduto").innerText = document.getElementById("produto").value;
+
+let valor = parseFloat(document.getElementById("valor").value).toFixed(2);
+
+document.getElementById("nValor").innerText = valor;
+document.getElementById("nTotal").innerText = valor;
+
+document.getElementById("nota").style.display = "block";
+
+// QR CODE
+document.getElementById("qrcode").innerHTML = "";
+new QRCode(document.getElementById("qrcode"), {
+    text: "NFe "+numero+" | Valor: "+valor,
+    width:80,
+    height:80
+});
 
 }
 
-function pdf(){
-    let element = document.getElementById("nota");
+async function baixarPDF(){
 
-    html2pdf().set({
-        margin:0,
-        filename:"nota.pdf",
-        html2canvas:{scale:2},
-        jsPDF:{unit:"mm", format:"a4", orientation:"portrait"}
-    }).from(element).save();
+let nota = document.getElementById("nota");
+
+let canvas = await html2canvas(nota, { scale: 3 });
+
+let imgData = canvas.toDataURL("image/png");
+
+const { jsPDF } = window.jspdf;
+
+let doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, 200]
+});
+
+doc.addImage(imgData, "PNG", 0, 0, 80, 200);
+
+doc.save("nota_fiscal.pdf");
+
 }
 
 </script>
