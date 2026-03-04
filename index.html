@@ -3,136 +3,131 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nota Fiscal - DesmancheBR</title>
+<title>Gerador de Nota Fiscal - DesmancheBR</title>
 
-<!-- jsPDF + html2canvas -->
+<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- QRCode -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
-body {font-family: 'Courier New', monospace; background:#f5f5f5; padding:20px;}
-.nf-container {background:#fff; max-width:700px; margin:auto; padding:20px; border:1px solid #333;}
-h1 {text-align:center; font-size:18px; margin-bottom:10px;}
-table {width:100%; border-collapse:collapse; margin-bottom:15px;}
-table, th, td {border:1px solid #333;}
-th, td {padding:8px; text-align:left; font-size:14px;}
-tfoot td {font-weight:bold;}
-.qr-container {text-align:center; margin-top:20px;}
-button {background:#25d366; color:#fff; padding:10px 15px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; margin-top:10px;}
-input {width:100%; padding:4px; box-sizing:border-box;}
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
+h1{text-align:center;color:#d90000;margin-bottom:20px;}
+.formulario{background:#fff;padding:20px;border-radius:8px;max-width:600px;margin:auto;box-shadow:0 0 10px rgba(0,0,0,0.1);}
+input, select{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;}
+button{background:#d90000;color:#fff;padding:12px;border:none;width:100%;border-radius:6px;font-weight:bold;margin-top:10px;cursor:pointer;}
+button:hover{background:#b20000;}
 </style>
 </head>
 <body>
 
-<div class="nf-container" id="notaFiscal">
+<h1>Gerador de Nota Fiscal - DesmancheBR</h1>
 
-<h1>🧾 NOTA FISCAL - DESMANCHEBR</h1>
+<div class="formulario">
+<form id="notaForm">
+  <label>Nome do Cliente:</label>
+  <input type="text" id="cliente" placeholder="Ex: Paulo" required>
 
-<table>
-<tr><td>Nº Nota:</td><td id="numeroNota"></td></tr>
-<tr><td>Data/Hora:</td><td id="dataHora"></td></tr>
-<tr><td>Atendente:</td><td>Felipe</td></tr>
-</table>
+  <label>CPF do Cliente:</label>
+  <input type="text" id="cpf" placeholder="Ex: 123.456.789-00" required>
 
-<h2>Dados do Cliente</h2>
-<table>
-<tr><td>Nome:</td><td><input type="text" id="nomeCliente" placeholder="Digite o nome" /></td></tr>
-<tr><td>CPF:</td><td><input type="text" id="cpfCliente" placeholder="000.000.000-00" /></td></tr>
-<tr><td>Endereço:</td><td><input type="text" id="enderecoCliente" placeholder="Rua, Nº, Bairro, Cidade" /></td></tr>
-</table>
+  <label>Endereço do Cliente:</label>
+  <input type="text" id="endereco" placeholder="Ex: Rua Exemplo, 123" required>
 
-<h2>Produtos / Serviços</h2>
-<table id="produtosTable">
-<thead>
-<tr><th>Produto</th><th>Quantidade</th><th>Valor Unit.</th><th>Total</th></tr>
-</thead>
-<tbody>
-<tr>
-<td><input type="text" placeholder="Produto 1" /></td>
-<td><input type="number" value="1" min="1" /></td>
-<td><input type="number" value="0" step="0.01" /></td>
-<td class="total">0,00</td>
-</tr>
-</tbody>
-<tfoot>
-<tr><td colspan="3">TOTAL</td><td id="totalGeral">0,00</td></tr>
-</tfoot>
-</table>
-<button onclick="adicionarProduto()">+ Adicionar Produto</button>
+  <label>Produto:</label>
+  <input type="text" id="produto" placeholder="Ex: Banco" required>
 
-<h2>Dados da Empresa</h2>
-<table>
-<tr><td>Empresa:</td><td>DesmancheBR</td></tr>
-<tr><td>CNPJ:</td><td>01.349.268/0001-04</td></tr>
-<tr><td>Endereço:</td><td>Rua João Pedro Moreira de Carvalho, 2296 - Sinop - MT</td></tr>
-</table>
+  <label>Quantidade:</label>
+  <input type="number" id="quantidade" value="1" min="1" required>
 
-<div class="qr-container" id="qrcode"></div>
+  <label>Valor Unitário (R$):</label>
+  <input type="number" id="valor" placeholder="Ex: 600" required>
 
-<button onclick="gerarPDF()">📄 Gerar PDF</button>
-
+  <button type="submit">Gerar Nota Fiscal PDF</button>
+</form>
 </div>
 
 <script>
-// Número da nota aleatório
-document.getElementById('numeroNota').textContent = 'BR-2026-' + Math.floor(Math.random()*90000+10000);
+const { jsPDF } = window.jspdf;
 
-// Data e hora Brasil
-function formatDataHora(){
-  const now = new Date();
-  const local = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)); // ajusta timezone local
-  return local.toLocaleString('pt-BR');
-}
-document.getElementById('dataHora').textContent = formatDataHora();
+document.getElementById('notaForm').addEventListener('submit', function(e){
+    e.preventDefault();
 
-// Adicionar produto
-function adicionarProduto(){
-  const tbody = document.getElementById('produtosTable').querySelector('tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input type="text" placeholder="Produto" /></td>
-                  <td><input type="number" value="1" min="1" /></td>
-                  <td><input type="number" value="0" step="0.01" /></td>
-                  <td class="total">0,00</td>`;
-  tbody.appendChild(tr);
-}
+    const cliente = document.getElementById('cliente').value;
+    const cpf = document.getElementById('cpf').value;
+    const endereco = document.getElementById('endereco').value;
+    const produto = document.getElementById('produto').value;
+    const quantidade = Number(document.getElementById('quantidade').value);
+    const valor = Number(document.getElementById('valor').value);
+    const total = quantidade * valor;
 
-// Atualiza totais
-document.getElementById('produtosTable').addEventListener('input', ()=>{
-  let totalGeral = 0;
-  const rows = document.querySelectorAll('#produtosTable tbody tr');
-  rows.forEach(r=>{
-    const qtd = parseFloat(r.children[1].children[0].value)||0;
-    const val = parseFloat(r.children[2].children[0].value)||0;
-    const total = qtd*val;
-    r.children[3].textContent = total.toFixed(2);
-    totalGeral += total;
-  });
-  document.getElementById('totalGeral').textContent = totalGeral.toFixed(2);
+    // Dados da empresa
+    const empresa = "DesmancheBR";
+    const cnpj = "01.349.268/0001-04";
+    const enderecoEmpresa = "Rua João Pedro Moreira de Carvalho, 2296, Setor Industrial, Sinop - MT";
+    const atendente = "Felipe";
+    const numeroSerie = "BR-" + Date.now();
+
+    // Data e hora Brasil
+    const data = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
+    const doc = new jsPDF();
+
+    // Título
+    doc.setFontSize(18);
+    doc.text("🧾 COMPROVANTE DE VENDA", 105, 15, null, null, "center");
+
+    doc.setFontSize(10);
+    doc.text(`Empresa: ${empresa}`, 14, 30);
+    doc.text(`CNPJ: ${cnpj}`, 14, 36);
+    doc.text(`Endereço: ${enderecoEmpresa}`, 14, 42);
+
+    doc.text(`Nº: ${numeroSerie}`, 150, 30);
+    doc.text(`Data/Hora: ${data}`, 150, 36);
+    doc.text(`Atendente: ${atendente}`, 150, 42);
+
+    doc.setLineWidth(0.5);
+    doc.line(14, 48, 196, 48); // Linha horizontal
+
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${cliente}`, 14, 55);
+    doc.text(`CPF: ${cpf}`, 14, 61);
+    doc.text(`Endereço: ${endereco}`, 14, 67);
+
+    doc.line(14, 72, 196, 72); // Linha horizontal
+
+    // Tabela de produtos
+    doc.setFontSize(11);
+    doc.text("Produto", 14, 78);
+    doc.text("Qtd", 120, 78);
+    doc.text("Valor Unit.", 150, 78);
+    doc.text("Total", 180, 78);
+
+    doc.line(14, 80, 196, 80);
+
+    doc.text(produto, 14, 88);
+    doc.text(quantidade.toString(), 125, 88);
+    doc.text("R$ " + valor.toFixed(2), 150, 88);
+    doc.text("R$ " + total.toFixed(2), 180, 88);
+
+    doc.line(14, 95, 196, 95);
+
+    doc.setFontSize(12);
+    doc.text(`TOTAL: R$ ${total.toFixed(2)}`, 14, 105);
+
+    // QR Code para verificação
+    const qr = new QRCode(document.createElement("div"), {
+        text: `https://desmanchebr.online/nota/${numeroSerie}`,
+        width: 50,
+        height: 50,
+        correctLevel : QRCode.CorrectLevel.H
+    });
+
+    const qrImg = qr._oDrawing._elCanvas.toDataURL("image/png");
+    doc.addImage(qrImg, "PNG", 160, 110, 40, 40);
+
+    doc.save(`NotaFiscal-${numeroSerie}.pdf`);
 });
-
-// QR Code
-new QRCode(document.getElementById("qrcode"), {
-  text: "Verifique esta nota em: desmanchebr.online/verificar",
-  width: 100,
-  height: 100
-});
-
-// Gerar PDF
-async function gerarPDF(){
-  const { jsPDF } = window.jspdf;
-  const nota = document.getElementById('notaFiscal');
-  const pdf = new jsPDF('p','pt','a4');
-  await pdf.html(nota, {
-    callback: function(doc){
-      doc.save(`nota_${document.getElementById('numeroNota').textContent}.pdf`);
-      alert("PDF gerado com sucesso!");
-    },
-    x:10,
-    y:10,
-    html2canvas: { scale: 2 } // escala maior para não cortar conteúdo
-  });
-}
 </script>
 
 </body>
