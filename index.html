@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Emissão de Nota Fiscal - DesmancheBR</title>
 
-<!-- CSS básico para estilo de nota fiscal -->
 <style>
 body {font-family: "Courier New", Courier, monospace; background:#f4f4f4; padding:20px;}
 .container {max-width:800px; margin:auto; background:#fff; padding:20px; border:1px solid #ccc;}
@@ -14,54 +13,43 @@ table {width:100%; border-collapse: collapse; margin-bottom:20px;}
 table, th, td {border:1px solid #000;}
 th, td {padding:8px; text-align:left;}
 th {background:#eee;}
-input, select {padding:6px; margin:5px 0; width:100%; box-sizing:border-box;}
+input {padding:6px; margin:5px 0; width:100%; box-sizing:border-box;}
 button {padding:10px 15px; margin:5px; background:#d90000; color:#fff; border:none; border-radius:4px; cursor:pointer;}
 .qr {text-align:center; margin-top:15px;}
 </style>
 
-<!-- Bibliotecas JS para PDF e QR Code -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Bibliotecas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
 <div class="container">
 <h2>🧾 Emissão de Nota Fiscal</h2>
 
-<!-- Formulário do cliente -->
-<div>
 <label>Nome do Cliente:</label>
 <input type="text" id="cliente" placeholder="Ex: Paulo" required>
-
 <label>CPF/CNPJ:</label>
 <input type="text" id="cpf" placeholder="Ex: 123.456.789-00" required>
-
 <label>Endereço do Cliente:</label>
-<input type="text" id="endereco" placeholder="Ex: Rua ABC, 123, Cidade" required>
-</div>
+<input type="text" id="endereco" placeholder="Rua ABC, 123, Cidade" required>
 
-<!-- Produtos -->
-<div>
 <h3>Produtos</h3>
 <div id="produtos"></div>
-
 <button onclick="adicionarProduto()">Adicionar Produto</button>
-</div>
 
-<!-- Botões -->
 <div>
 <button onclick="gerarNota()">Gerar Nota</button>
 <button onclick="baixarPDF()">Baixar PDF</button>
 <button onclick="compartilharWhats()">Compartilhar WhatsApp</button>
 </div>
 
-<!-- Pré-visualização da nota -->
-<div id="nota" style="margin-top:20px;"></div>
+<div id="nota" style="margin-top:20px; padding:15px; border:1px dashed #ccc;"></div>
 <div class="qr" id="qrcode"></div>
 </div>
 
 <script>
-// Dados fixos da empresa
 const empresa = {
   nome: "DesmancheBR",
   cnpj: "01.349.268/0001-04",
@@ -69,10 +57,8 @@ const empresa = {
   atendente: "Felipe"
 };
 
-// Produtos array
 let listaProdutos = [];
 
-// Função para adicionar produto
 function adicionarProduto(){
   const div = document.createElement('div');
   div.innerHTML = `
@@ -83,13 +69,11 @@ function adicionarProduto(){
   document.getElementById('produtos').appendChild(div);
 }
 
-// Gerar nota
 function gerarNota(){
   const cliente = document.getElementById('cliente').value;
   const cpf = document.getElementById('cpf').value;
   const endereco = document.getElementById('endereco').value;
 
-  // Coletar produtos
   listaProdutos = [];
   const nomes = document.querySelectorAll('.produto');
   const quant = document.querySelectorAll('.quantidade');
@@ -106,7 +90,6 @@ function gerarNota(){
   const data = new Date().toLocaleString("pt-BR", {timeZone:"America/Sao_Paulo"});
   const numero = "BR-"+Math.floor(Math.random()*90000+10000);
 
-  // Montar HTML da nota
   let html = `<h3>🧾 COMPROVANTE DE VENDA</h3>
   <p>Nº: ${numero}<br>
   Cliente: ${cliente}<br>
@@ -133,26 +116,25 @@ function gerarNota(){
   });
 
   html += `</table><p style="text-align:right; font-weight:bold;">TOTAL: R$ ${totalNota.toFixed(2)}</p>`;
+
   document.getElementById('nota').innerHTML = html;
 
-  // QR Code
   document.getElementById('qrcode').innerHTML = "";
   new QRCode(document.getElementById("qrcode"), numero);
 }
 
-// Gerar PDF
-function baixarPDF(){
+// Baixar PDF usando html2canvas + jsPDF
+async function baixarPDF(){
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const notaHTML = document.getElementById('nota').innerHTML;
-  doc.html(notaHTML, {
-    callback: function(doc){
-      doc.save("nota_fiscal.pdf");
-    },
-    x:10,
-    y:10
-  });
+  const notaDiv = document.getElementById('nota');
+  const canvas = await html2canvas(notaDiv);
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p','pt','a4');
+  const imgProps = pdf.getImageProperties(imgData);
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+  pdf.save('nota_fiscal.pdf');
 }
 
 // Compartilhar WhatsApp
