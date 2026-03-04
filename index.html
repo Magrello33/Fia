@@ -3,111 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comprovante Profissional - PDF com QR</title>
-
-<!-- jsPDF e QR Code -->
+<title>Emissão de Nota Fiscal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-body{font-family: 'Courier New', monospace; background:#f5f5f5; padding:20px;}
-.container{max-width:600px;margin:auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 0 15px rgba(0,0,0,0.1);}
+body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
 h2{text-align:center;color:#d90000;margin-bottom:20px;}
-input{width:100%;padding:10px;margin-bottom:10px;border:1px solid #ccc;border-radius:5px;}
-button{width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:5px;font-size:16px;cursor:pointer;margin-top:10px;}
-button:hover{background:#1ebe5d;}
+form{background:#fff;padding:20px;border-radius:8px;max-width:600px;margin:auto;}
+input, select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px;}
+button{background:#d90000;color:#fff;padding:12px;border:none;width:100%;border-radius:6px;font-weight:bold;cursor:pointer;}
+.nf-preview{background:#fff;padding:20px;border-radius:8px;max-width:600px;margin:20px auto;font-size:14px;line-height:1.5;border:1px solid #ccc;}
+.nf-preview table{width:100%;border-collapse:collapse;margin-top:10px;}
+.nf-preview th, .nf-preview td{border:1px solid #000;padding:6px;text-align:left;}
+.qr-code{margin-top:15px;text-align:center;}
 </style>
 </head>
 <body>
 
-<div class="container">
-<h2>Emissão de Comprovante Profissional</h2>
-<input id="nome" placeholder="Nome do Cliente">
-<input id="cpf" placeholder="CPF do Cliente">
-<input id="enderecoCliente" placeholder="Endereço do Cliente">
-<input id="produto" placeholder="Produto">
-<input id="valor" placeholder="Valor (R$)">
-<button onclick="gerarPDF()">Gerar PDF & Compartilhar</button>
+<h2>🧾 Emissão de Nota Fiscal</h2>
+
+<form id="nfForm">
+<label>Nome do Cliente</label>
+<input type="text" id="clienteNome" required>
+
+<label>CPF do Cliente</label>
+<input type="text" id="clienteCPF" required placeholder="000.000.000-00">
+
+<label>Endereço do Cliente</label>
+<input type="text" id="clienteEndereco" required>
+
+<label>Produto</label>
+<input type="text" id="produto" required>
+
+<label>Quantidade</label>
+<input type="number" id="quantidade" min="1" value="1" required>
+
+<label>Valor Unitário (R$)</label>
+<input type="number" id="valor" min="0" step="0.01" value="0" required>
+
+<button type="submit">Gerar Nota Fiscal</button>
+</form>
+
+<div class="nf-preview" id="nfPreview" style="display:none;">
+<h3>🧾 COMPROVANTE DE VENDA</h3>
+<p><strong>Empresa:</strong> DesmancheBR</p>
+<p><strong>CNPJ:</strong> 01.349.268/0001-04</p>
+<p><strong>Endereço:</strong> Rua João Pedro Moreira de Carvalho, 2296, Sinop - MT</p>
+<p><strong>Atendente:</strong> Felipe</p>
+<p><strong>Nº Série:</strong> <span id="serieNF"></span></p>
+<p><strong>Data/Hora:</strong> <span id="dataNF"></span></p>
+<hr>
+<p><strong>Cliente:</strong> <span id="cNome"></span></p>
+<p><strong>CPF:</strong> <span id="cCPF"></span></p>
+<p><strong>Endereço:</strong> <span id="cEndereco"></span></p>
+<table>
+<tr>
+<th>Produto</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th>
+</tr>
+<tr>
+<td id="pNome"></td><td id="pQtd"></td><td id="pValor"></td><td id="pTotal"></td>
+</tr>
+</table>
+<p><strong>Total Geral: R$ <span id="totalGeral"></span></strong></p>
+<div class="qr-code" id="qrCode"></div>
+<button id="downloadPDF">📥 Baixar PDF</button>
+<button id="shareWhatsApp">📤 Compartilhar no WhatsApp</button>
 </div>
 
 <script>
-async function gerarPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+const { jsPDF } = window.jspdf;
 
-    // Dados do cliente
-    let nome = document.getElementById("nome").value || "________";
-    let cpf = document.getElementById("cpf").value || "________";
-    let enderecoCliente = document.getElementById("enderecoCliente").value || "________";
-    let produto = document.getElementById("produto").value || "________";
-    let valor = document.getElementById("valor").value || "0,00";
-
-    // Dados da empresa
-    let empresa = "AUTO PEÇAS E MECÂNICA BR";
-    let cnpj = "01.349.268/0001-04";
-    let enderecoEmpresa = "Rua João Pedro Moreira de Carvalho, 2296 - Sinop MT";
-    let atendente = "Felipe";
-
-    // Número de série e data
-    let numero = "BR-" + Math.floor(Math.random()*100000);
-    let data = new Date().toLocaleString("pt-BR", {timeZone:"America/Sao_Paulo"});
-
-    // Geração de QR code com jsQRious
-    let qr = new QRious({value:`${numero}|${nome}|${produto}|${valor}`, size:80});
-
-    // Começa o PDF
-    doc.setFont("Courier", "normal");
-    doc.setFontSize(12);
-
-    let startY = 20;
-
-    // Cabeçalho
-    doc.text(empresa, 10, startY);
-    startY +=6;
-    doc.text(`CNPJ: ${cnpj}`, 10, startY);
-    startY +=6;
-    doc.text(enderecoEmpresa, 10, startY);
-    startY +=10;
-    doc.text(`Comprovante de Venda - Nº: ${numero}`, 10, startY);
-    startY +=6;
-    doc.text(`Data/Hora: ${data}`, 10, startY);
-    startY +=10;
-
-    // Tabela de dados
-    doc.text("CLIENTE", 10, startY);
-    doc.text("CPF", 90, startY);
-    doc.text("ENDEREÇO", 150, startY);
-    startY +=6;
-    doc.text(nome, 10, startY);
-    doc.text(cpf, 90, startY);
-    doc.text(enderecoCliente, 150, startY);
-    startY +=10;
-
-    doc.text("PRODUTO", 10, startY);
-    doc.text("VALOR (R$)", 150, startY);
-    startY +=6;
-    doc.text(produto, 10, startY);
-    doc.text(valor, 150, startY);
-    startY +=10;
-
-    doc.text(`Atendente: ${atendente}`, 10, startY);
-    startY +=10;
-    doc.text("Envio para todo Brasil", 10, startY);
-
-    // Adiciona QR code
-    let qrImg = qr.toDataURL();
-    doc.addImage(qrImg, 'PNG', 150, 20, 40, 40);
-
-    // Salva PDF
-    let fileName = `Comprovante_${numero}.pdf`;
-    doc.save(fileName);
-
-    // WhatsApp
-    let numeroWhats = "5511922123841"; // seu número
-    let texto = `Comprovante de Venda\nNº: ${numero}\nCliente: ${nome}\nProduto: ${produto}\nValor: R$ ${valor}\nAtendente: ${atendente}`;
-    let url = "https://wa.me/" + numeroWhats + "?text=" + encodeURIComponent(texto);
-    window.open(url, "_blank");
+function formatBR(value){
+    return value.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+
+document.getElementById('nfForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const nome = document.getElementById('clienteNome').value;
+    const cpf = document.getElementById('clienteCPF').value;
+    const endereco = document.getElementById('clienteEndereco').value;
+    const produto = document.getElementById('produto').value;
+    const quantidade = parseInt(document.getElementById('quantidade').value);
+    const valor = parseFloat(document.getElementById('valor').value);
+
+    const total = quantidade * valor;
+    const now = new Date().toLocaleString("pt-BR", {timeZone:"America/Sao_Paulo"});
+    const serie = 'BR-'+Math.floor(Math.random()*90000+10000);
+
+    document.getElementById('serieNF').textContent = serie;
+    document.getElementById('dataNF').textContent = now;
+    document.getElementById('cNome').textContent = nome;
+    document.getElementById('cCPF').textContent = cpf;
+    document.getElementById('cEndereco').textContent = endereco;
+    document.getElementById('pNome').textContent = produto;
+    document.getElementById('pQtd').textContent = quantidade;
+    document.getElementById('pValor').textContent = 'R$ '+formatBR(valor);
+    document.getElementById('pTotal').textContent = 'R$ '+formatBR(total);
+    document.getElementById('totalGeral').textContent = formatBR(total);
+
+    // QR Code
+    document.getElementById('qrCode').innerHTML = '';
+    new QRCode(document.getElementById('qrCode'), {
+        text: `Nota: ${serie} | Cliente: ${nome} | Total: R$${formatBR(total)}`,
+        width: 100,
+        height: 100
+    });
+
+    document.getElementById('nfPreview').style.display='block';
+});
+
+// Gerar PDF
+document.getElementById('downloadPDF').addEventListener('click', function(){
+    const doc = new jsPDF();
+    const preview = document.getElementById('nfPreview');
+    doc.html(preview, {
+        callback: function(pdf){
+            pdf.save('NotaFiscal_'+document.getElementById('serieNF').textContent+'.pdf');
+        },
+        x:10,
+        y:10,
+        width:190
+    });
+});
+
+// Compartilhar WhatsApp
+document.getElementById('shareWhatsApp').addEventListener('click', function(){
+    const nome = document.getElementById('cNome').textContent;
+    const total = document.getElementById('totalGeral').textContent;
+    const serie = document.getElementById('serieNF').textContent;
+    const url = `https://api.whatsapp.com/send?phone=5511944690732&text=Olá%20${nome},%20sua%20nota%20fiscal%20Nº%20${serie}%20foi%20emitida.%20Total%20R$%20${total}`;
+    window.open(url,'_blank');
+});
 </script>
+
 </body>
 </html>
