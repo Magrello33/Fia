@@ -126,59 +126,69 @@ let numero = "BR-" + Date.now();
 let data = new Date().toLocaleString('pt-BR', {timeZone:'America/Sao_Paulo'});
 
 let total = produtos.reduce((a,b)=>a+b.valor,0);
-
 let html = `
-<div class="header">
-<div>
-<strong>Auto Peças e Mecânica BR</strong><br>
+<div style="width:100%; font-family:Courier New; font-size:14px;">
+
+<div style="text-align:center; font-weight:bold; font-size:16px;">
+AUTO PEÇAS E MECÂNICA BR<br>
 CNPJ: 01.349.268/0001-04<br>
-Endereço: Sinop - MT
+Sinop - MT
 </div>
+
+<hr style="border:1px solid #000;">
+
 <div>
-Nº: ${numero}<br>
+NFC-e Nº: ${numero}<br>
 Data: ${data}
 </div>
-</div>
 
-<hr>
+<hr style="border:1px dashed #000;">
 
-<strong>Cliente:</strong> ${nome}<br>
-<strong>CPF:</strong> ${cpf}<br>
-<strong>Endereço:</strong> ${endereco}<br><br>
+CLIENTE: ${nome}<br>
+CPF: ${cpf}<br>
+ENDEREÇO: ${endereco}
 
-<table>
+<hr style="border:1px solid #000;">
+
+<table style="width:100%; border-collapse:collapse;">
 <tr>
-<th>Produto</th>
-<th>Valor</th>
+<th style="text-align:left;">ITEM</th>
+<th style="text-align:right;">VALOR</th>
 </tr>
 `;
 
-produtos.forEach(p=>{
-html += `<tr><td>${p.nome}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`;
+produtos.forEach((p,i)=>{
+html += `
+<tr>
+<td>${i+1}. ${p.nome}</td>
+<td style="text-align:right;">R$ ${p.valor.toFixed(2)}</td>
+</tr>
+`;
 });
 
-html += `</table>
+html += `
+</table>
 
-<div class="total">
-TOTAL: R$ ${total.toFixed(2)}
+<hr style="border:1px solid #000;">
+
+<div style="text-align:right; font-size:18px; font-weight:bold;">
+TOTAL R$ ${total.toFixed(2)}
 </div>
 
-<br>
-Atendente: Felipe
-<div id="qrcode"></div>
+<hr style="border:1px dashed #000;">
+
+FORMA DE PAGAMENTO: DINHEIRO<br>
+ATENDENTE: FELIPE
+
+<div style="margin-top:15px; text-align:center; font-size:12px;">
+Documento sem valor fiscal<br>
+Impresso para simples conferência
+</div>
+
+<div id="qrcode" style="margin-top:10px; text-align:center;"></div>
+
+</div>
 `;
-
-let nota = document.getElementById('nota');
-nota.innerHTML = html;
-nota.style.display='block';
-
-// QR CODE
-let qr = new QRCode(document.getElementById("qrcode"), {
-text: numero,
-width: 80,
-height: 80
-});
-}
 
 function gerarPDF(){
 let element = document.getElementById('nota');
