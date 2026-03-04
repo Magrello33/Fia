@@ -69,8 +69,90 @@ button{background:#d90000;color:#fff;padding:12px;border:none;width:100%;border-
 <button id="downloadPDF">📥 Baixar PDF</button>
 <button id="shareWhatsApp">📤 Compartilhar no WhatsApp</button>
 </div>
-
 <script>
+const { jsPDF } = window.jspdf;
+
+function formatBR(value){
+    return value.toLocaleString('pt-BR', {minimumFractionDigits:2});
+}
+
+document.getElementById('nfForm').addEventListener('submit', function(e){
+    e.preventDefault();
+
+    const nome = document.getElementById('clienteNome').value;
+    const cpf = document.getElementById('clienteCPF').value;
+    const endereco = document.getElementById('clienteEndereco').value;
+    const produto = document.getElementById('produto').value;
+    const quantidade = parseInt(document.getElementById('quantidade').value);
+    const valor = parseFloat(document.getElementById('valor').value);
+
+    const total = quantidade * valor;
+    const now = new Date().toLocaleString("pt-BR", {timeZone:"America/Sao_Paulo"});
+    const serie = 'BR-'+Math.floor(Math.random()*90000+10000);
+
+    // Preencher nota
+    document.getElementById('serieNF').textContent = serie;
+    document.getElementById('dataNF').textContent = now;
+    document.getElementById('cNome').textContent = nome;
+    document.getElementById('cCPF').textContent = cpf;
+    document.getElementById('cEndereco').textContent = endereco;
+    document.getElementById('pNome').textContent = produto;
+    document.getElementById('pQtd').textContent = quantidade;
+    document.getElementById('pValor').textContent = 'R$ '+formatBR(valor);
+    document.getElementById('pTotal').textContent = 'R$ '+formatBR(total);
+    document.getElementById('totalGeral').textContent = formatBR(total);
+
+    document.getElementById('nfPreview').style.display='block';
+});
+
+// ✅ PDF FUNCIONANDO (modo simples e confiável)
+document.getElementById('downloadPDF').addEventListener('click', function(){
+    const doc = new jsPDF();
+
+    const texto = `
+COMPROVANTE DE VENDA
+
+Empresa: DesmancheBR
+CNPJ: 01.349.268/0001-04
+Endereço: Rua João Pedro Moreira de Carvalho, 2296 - Sinop MT
+
+Cliente: ${document.getElementById('cNome').textContent}
+CPF: ${document.getElementById('cCPF').textContent}
+Endereço: ${document.getElementById('cEndereco').textContent}
+
+Produto: ${document.getElementById('pNome').textContent}
+Quantidade: ${document.getElementById('pQtd').textContent}
+Valor: ${document.getElementById('pValor').textContent}
+Total: R$ ${document.getElementById('totalGeral').textContent}
+
+Atendente: Felipe
+Nº: ${document.getElementById('serieNF').textContent}
+Data: ${document.getElementById('dataNF').textContent}
+`;
+
+    doc.text(texto, 10, 10);
+    doc.save('nota_fiscal.pdf');
+});
+
+// ✅ WHATSAPP FUNCIONANDO 100%
+document.getElementById('shareWhatsApp').addEventListener('click', function(){
+
+    const nome = document.getElementById('cNome').textContent;
+    const total = document.getElementById('totalGeral').textContent;
+    const serie = document.getElementById('serieNF').textContent;
+
+    const mensagem = `Olá ${nome}, sua nota foi emitida.
+
+Número: ${serie}
+Total: R$ ${total}
+
+DesmancheBR`;
+
+    const url = `https://wa.me/5511944690732?text=${encodeURIComponent(mensagem)}`;
+
+    window.open(url, '_blank');
+});
+</script>
 const { jsPDF } = window.jspdf;
 
 function formatBR(value){
